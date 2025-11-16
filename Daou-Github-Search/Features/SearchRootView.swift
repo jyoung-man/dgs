@@ -18,7 +18,7 @@ struct SearchRootView: View {
                         .foregroundColor(.gray)
                     TextField("검색어를 입력하세요", text: $viewModel.keyword)
                         .onSubmit {
-                            viewModel.search()
+                            viewModel.search(reset: false)
                         }
                 }
                 .padding(8)
@@ -29,8 +29,52 @@ struct SearchRootView: View {
 
             List(viewModel.repositories) { repo in
                 SearchRow(repository: repo)
-            }
+                    .task {
+                        if repo == viewModel.repositories.last {
+                            viewModel.loadNextPage()
+                        }
+                    }
+                
+                /*
+                 .task {
+                     if repo == viewModel.repositories.last {
+                         await viewModel.loadNextPage()
+                     }
+                 }
+                 
+                 
+                 ScrollView {
+                     LazyVStack {
+                         ForEach(viewModel.repositories) { repo in
+                             RepoRow(repo: repo)
+                                 if repo == viewModel.repositories.last {
+                                     viewModel.loadNextPage()
+                                 }
+                         }
 
+                         if viewModel.isLoading {
+                             ProgressView()
+                                 .padding()
+                         }
+                     }
+                 }
+                 
+                 final class RepoViewModel: ObservableObject {
+                     let lastItemVisible = PassthroughSubject<Void, Never>()
+
+                     init() {
+                         lastItemVisible
+                             .debounce(for: .milliseconds(200), scheduler: DispatchQueue.main)
+                             .sink { [weak self] in
+                                 self?.loadNextPage()
+                             }
+                             .store(in: &cancellables)
+                     }
+                 }
+*/
+                
+            
+            .listStyle(PlainListStyle())
         }
         
         .frame(maxWidth: .infinity, maxHeight: .infinity)

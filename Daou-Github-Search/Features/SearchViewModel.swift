@@ -12,6 +12,9 @@ final class SearchViewModel:
     ObservableObject {
     
     @Published var keyword = ""
+    @Published var page = 1
+    @Published var isLoading = false
+    @Published var totalCount: Int = 0
     @Published private(set) var repositories = [Repository]()
     
     
@@ -23,28 +26,51 @@ final class SearchViewModel:
         searchCancellable?.cancel()
     }
     
-    func search() {
+    func search(reset: Bool = true, completion: (() -> Void)? = nil) {
+        if reset {
+            page = 1
+            repositories = []
+        }
+        
         guard !keyword.isEmpty else {
-            return repositories = []
+            repositories = []
+            totalCount = 0
+            return
         }
         
         let request: URLRequest
         do {
-            request = try GitHubAPI.repositories(query: keyword, perPage: 30, page: 1).asURLRequest()
+            request = try GitHubAPI.repositories(query: keyword, perPage: 15, page: page).asURLRequest()
         } catch {
-            return repositories = []
+            repositories = []
+            return
         }
         searchCancellable = URLSession.shared.dataTaskPublisher(for: request)
             .map { $0.data }
             .decode(type: RepositoryResponse.self, decoder: JSONDecoder())
-            .map { $0.items }
-            .catch { error -> Just<[Repository]> in
+            .catch { error -> Just<RepositoryResponse> in
                 print("Search API error:", error)
-                return Just([])
+                return Just(RepositoryResponse(total_count: 0, incomplete_results: true, items: []))
             }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] items in
-                self?.repositories = items
+            .sink { [weak self] response in
+                if reset {
+                    self?.repositories = response.items
+                } else {
+                    self?.repositories.append(contentsOf: response.items)
+                }
+                self?.totalCount = response.total_count
+                print("total count = \(response.total_count)")
+                completion?()
             }
+    }
+    
+    func loadNextPage() {
+        guard !isLoading, repositories.count < totalCount else { return }
+        isLoading = true
+        page += 1
+        search(reset: false) { [weak self] in
+            self?.isLoading = false
+        }
     }
 }

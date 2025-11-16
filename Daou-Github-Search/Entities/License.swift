@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct License: Codable {
+struct License: Codable, Equatable {
     let key: String?
     let name: String?
     let spdxId: String?

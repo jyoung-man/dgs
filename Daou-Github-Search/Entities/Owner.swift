@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Owner: Codable {
+struct Owner: Codable, Equatable {
     let name: String
     let avatarUrl: URL?
 

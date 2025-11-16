@@ -13,7 +13,7 @@ struct RepositoryResponse: Codable {
     let items: [Repository]
 }
 
-struct Repository: Codable, Identifiable {
+struct Repository: Codable, Identifiable, Equatable {
     let id: Int
     let name: String
     let fullName: String?
