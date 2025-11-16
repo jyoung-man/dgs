@@ -25,7 +25,7 @@ struct ProfileRootView: View {
     var body: some View {
         VStack {
             List(viewModel.repositories) { repo in
-                SearchRow(repository: repo)
+                SearchRow(repository: repo, viewModel: viewModel)
             }
             .listStyle(PlainListStyle())
         }

@@ -10,6 +10,7 @@ import SwiftUI
 struct RootTabView: View {
     private let loginService: GitHubLoginService
     @State private var showLogin = false
+    @State private var isLoggedIn = false
 
     init(loginService: GitHubLoginService) {
         self.loginService = loginService
@@ -18,7 +19,7 @@ struct RootTabView: View {
     var body: some View {
         TabView {
             NavigationStack {
-                SearchRootView()
+                SearchRootView(loginService: loginService)
                     .toolbar {
                         ToolbarItem(placement: .principal) {
                             Text("GitHub").font(.headline)
@@ -34,8 +35,13 @@ struct RootTabView: View {
                             Text("GitHub").font(.headline)
                         }
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button("로그인") {
-                                showLogin = true
+                            Button(isLoggedIn ? "로그아웃" : "로그인") {
+                                if isLoggedIn {
+                                    // 로그아웃 처리 필요
+                                    isLoggedIn = false
+                                } else {
+                                    showLogin = true
+                                }
                             }
                         }
                     }
@@ -46,6 +52,7 @@ struct RootTabView: View {
             GitHubLoginSheet(loginService: loginService)
         }
         .onReceive(loginService.loginCompletedPublisher) {
+            isLoggedIn = true
             showLogin = false
         }
     }

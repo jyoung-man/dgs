@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SearchRow: View {
     var repository: Repository
+    @ObservedObject var viewModel: GitHubLoginViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -19,9 +20,13 @@ struct SearchRow: View {
                     .foregroundStyle(.blue)
                     .bold()
                 Spacer()
-                
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.yellow)
+                Button(action: {
+                    viewModel.toggleStar(for: repository)
+                }) {
+                    Image(systemName: repository.isStarred ? "star.fill" : "star")
+                        .foregroundStyle(.yellow)
+
+                }
             }
             .padding(.leading, 12)
             .padding(.trailing, 12)
@@ -55,12 +60,5 @@ struct SearchRow: View {
             }
             .padding(.leading, 12) // 좌측 여백
         }
-    }
-}
-
-#Preview {
-    let repo = Repository(id: 123213213213, name: "test", fullName: "TEST repository", description: "test repository description", starCount: 500, language: "Swift", owner: Owner(name: "jyoung-man", avatarUrl: nil), license: License(key: "123213", name: "MIT", spdxId: "123124124"), isStarred: true)
-    return Group {
-        SearchRow(repository: repo)
     }
 }

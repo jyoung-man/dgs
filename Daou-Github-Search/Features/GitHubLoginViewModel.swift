@@ -15,6 +15,7 @@ final class GitHubLoginViewModel: ObservableObject {
     private var myRepoCancellable: Cancellable? {
         didSet { oldValue?.cancel() }
     }
+    
     private var token: String?
     
     deinit {
@@ -25,8 +26,6 @@ final class GitHubLoginViewModel: ObservableObject {
     
     init(client: GitHubClientProtocol, loginService: GitHubLoginService) {
         self.client = client
-        print("client \(client)")
-        
         myRepoCancellable = loginService.loginCompletedPublisher
             .sink { [weak self] in
                 guard let self = self else { return }
@@ -57,4 +56,31 @@ final class GitHubLoginViewModel: ObservableObject {
                 print("starred repositories = \(items)")
             }
     }
+    
+    func toggleStar(for repository: Repository) {
+        guard let index = repositories.firstIndex(where: { $0.id == repository.id }) else { return }
+
+        let endpoint: GitHubAPI
+        if repository.isStarred {
+            endpoint = .unstar(owner: repository.owner.name, repository: repository.name)
+        } else {
+            endpoint = .star(owner: repository.owner.name, repository: repository.name)
+        }
+
+        do {
+            let request = try endpoint.asURLRequest()
+            myRepoCancellable = URLSession.shared.dataTaskPublisher(for: request)
+                .map { _ in repository.isStarred }
+                .catch { error -> Just<Bool> in
+                    return Just(false)
+                }
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.repositories[index].isStarred.toggle()
+                }
+        } catch {
+            print("Star/Unstar request failed:", error)
+        }
+    }
 }
+

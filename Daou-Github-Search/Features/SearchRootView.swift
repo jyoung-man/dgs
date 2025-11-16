@@ -8,8 +8,19 @@
 import SwiftUI
 
 struct SearchRootView: View {
-    @StateObject var viewModel = SearchViewModel()
-    
+    private let loginService: GitHubLoginService
+    @StateObject private var viewModel = SearchViewModel()
+    @StateObject private var loginViewModel: GitHubLoginViewModel
+
+    init(loginService: GitHubLoginService) {
+        self.loginService = loginService
+        _loginViewModel = StateObject(
+            wrappedValue: GitHubLoginViewModel(
+                client: GitHubClient(session: .default),
+                loginService: loginService
+            )
+        )
+    }
     var body: some View {
         VStack() {
             HStack {
@@ -28,7 +39,7 @@ struct SearchRootView: View {
             .padding(.horizontal)
 
             List(viewModel.repositories) { repo in
-                SearchRow(repository: repo)
+                SearchRow(repository: repo, viewModel: loginViewModel)
                     .task {
                         if repo == viewModel.repositories.last {
                             viewModel.loadNextPage()
