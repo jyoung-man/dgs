@@ -15,7 +15,8 @@ final class GitHubLoginViewModel: ObservableObject {
     private var myRepoCancellable: Cancellable? {
         didSet { oldValue?.cancel() }
     }
-    
+    private var toggleCancellable: Cancellable?
+
     private var token: String?
     
     deinit {
@@ -39,6 +40,21 @@ final class GitHubLoginViewModel: ObservableObject {
         let request: URLRequest
         do {
             request = try GitHubAPI.myStarredRepositories(accessToken: self.token ?? "").asURLRequest()
+            
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                guard let httpResponse = response as? HTTPURLResponse else { return }
+
+                if let limit = httpResponse.value(forHTTPHeaderField: "X-RateLimit-Limit"),
+                   let remaining = httpResponse.value(forHTTPHeaderField: "X-RateLimit-Remaining"),
+                   let reset = httpResponse.value(forHTTPHeaderField: "X-RateLimit-Reset") {
+                    print("RateLimit: \(limit), Remaining: \(remaining), Reset: \(reset)")
+                }
+
+                if let data = data {
+                    print(String(data: data, encoding: .utf8) ?? "")
+                }
+            }.resume()
+
         } catch {
             repositories = []
             return
@@ -61,7 +77,7 @@ final class GitHubLoginViewModel: ObservableObject {
         guard let index = repositories.firstIndex(where: { $0.id == repository.id }) else { return }
 
         let endpoint: GitHubAPI
-        if repository.isStarred {
+        if repository.isStarred ?? false {
             endpoint = .unstar(owner: repository.owner.name, repository: repository.name)
         } else {
             endpoint = .star(owner: repository.owner.name, repository: repository.name)
@@ -70,13 +86,11 @@ final class GitHubLoginViewModel: ObservableObject {
         do {
             let request = try endpoint.asURLRequest()
             myRepoCancellable = URLSession.shared.dataTaskPublisher(for: request)
-                .map { _ in repository.isStarred }
-                .catch { error -> Just<Bool> in
-                    return Just(false)
-                }
+                .map { _ in }
+                .catch { error -> Just<Void> in Just(()) }
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
-                    self?.repositories[index].isStarred.toggle()
+                    self?.getStaredRepo()
                 }
         } catch {
             print("Star/Unstar request failed:", error)

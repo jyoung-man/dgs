@@ -22,7 +22,7 @@ struct Repository: Codable, Identifiable, Equatable {
     let language: String?
     let owner: Owner
     let license: License?
-    var isStarred: Bool = false
+    var isStarred: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, name, description, owner, language, license

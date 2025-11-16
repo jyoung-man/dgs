@@ -23,7 +23,7 @@ struct SearchRow: View {
                 Button(action: {
                     viewModel.toggleStar(for: repository)
                 }) {
-                    Image(systemName: repository.isStarred ? "star.fill" : "star")
+                    Image(systemName: (repository.isStarred ?? false) ? "star.fill" : "star")
                         .foregroundStyle(.yellow)
 
                 }
