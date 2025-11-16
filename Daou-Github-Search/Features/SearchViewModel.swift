@@ -14,7 +14,7 @@ final class SearchViewModel:
     @Published var keyword = ""
     @Published var page = 1
     @Published var isLoading = false
-    @Published var totalCount: Int = 0
+    @Published var totalCount: Int?
     @Published private(set) var repositories = [Repository]()
     
     
@@ -29,6 +29,7 @@ final class SearchViewModel:
     func search(reset: Bool = true, completion: (() -> Void)? = nil) {
         if reset {
             page = 1
+            totalCount = 0
             repositories = []
         }
         
@@ -49,6 +50,10 @@ final class SearchViewModel:
             .map { $0.data }
             .decode(type: RepositoryResponse.self, decoder: JSONDecoder())
             .catch { error -> Just<RepositoryResponse> in
+                if let data = error as? DecodingError {
+                    // 마지막 페이지: total_count 없음 → 빈 Response 반환
+                    return Just(RepositoryResponse(total_count: self.repositories.count, incomplete_results: true, items: []))
+                }
                 print("Search API error:", error)
                 return Just(RepositoryResponse(total_count: 0, incomplete_results: true, items: []))
             }
@@ -66,7 +71,7 @@ final class SearchViewModel:
     }
     
     func loadNextPage() {
-        guard !isLoading, repositories.count < totalCount else { return }
+        guard !isLoading, repositories.count < totalCount ?? 0 else { return }
         isLoading = true
         page += 1
         search(reset: false) { [weak self] in

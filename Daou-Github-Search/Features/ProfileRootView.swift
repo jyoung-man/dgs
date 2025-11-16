@@ -9,17 +9,24 @@ import SwiftUI
 
 struct ProfileRootView: View {
     private let loginService: GitHubLoginService
+
+    @StateObject var viewModel = GitHubLoginViewModel(client: GitHubClient(session: .default))
     
     init(loginService: GitHubLoginService) {
         self.loginService = loginService
     }
 
     var body: some View {
-        VStack() {
-            Text("Profile TODO")
-                .font(.title2)
+        VStack {
+            List(viewModel.repositories) { repo in
+                SearchRow(repository: repo)
+            }
+            .listStyle(PlainListStyle())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
+        .onReceive(loginService.loginCompletedPublisher) {
+            viewModel.getStaredRepo()
+        }
     }
 }

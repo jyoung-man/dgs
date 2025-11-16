@@ -18,8 +18,8 @@ protocol GitHubLoginService: AnyObject {
 final class GitHubLoginServiceImplement: GitHubLoginService {
     
     enum Constants {
-        static let clientID = "YOUR_CLIENT_ID"
-        static let clientSecret = "YOUR_CLIENT_SECRET"
+        static let clientID = "Ov23lisWsbLaoOfM3OVW"
+        static let clientSecret = "14943b76d08467d2f9ae9e8cb5a67518ba1f1a8a"
         static let callbackScheme = "daougithubsearch"
         static let callbackHost = "login"
     }
