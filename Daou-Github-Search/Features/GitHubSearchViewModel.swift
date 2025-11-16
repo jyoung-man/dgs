@@ -1,5 +1,5 @@
 //
-//  GitHubLoginViewModel.swift
+//  GitHubSearchViewModel.swift
 //  Daou-Github-Search
 //
 //  Created by 박재영 on 11/16/25.
@@ -8,10 +8,17 @@
 import SwiftUI
 import Combine
 
-final class GitHubLoginViewModel: ObservableObject {
+final class GitHubSearchViewModel: ObservableObject {
+    @Published private(set) var totalRepositories = [Repository]()
+    @Published private(set) var starredRepositories = [Repository]()
+    @Published var keyword = ""
+    @Published var page = 1
+    @Published var isLoading = false
+    @Published var totalCount: Int?
     
-    @Published private(set) var repositories = [Repository]()
-    
+    private var searchCancellable: Cancellable? {
+        didSet { oldValue?.cancel() }
+    }
     private var myRepoCancellable: Cancellable? {
         didSet { oldValue?.cancel() }
     }
@@ -21,6 +28,8 @@ final class GitHubLoginViewModel: ObservableObject {
     
     deinit {
         myRepoCancellable?.cancel()
+        searchCancellable?.cancel()
+        toggleCancellable?.cancel()
     }
     
     private var client: GitHubClientProtocol
@@ -36,6 +45,59 @@ final class GitHubLoginViewModel: ObservableObject {
             }
     }
     
+    func search(reset: Bool = true, completion: (() -> Void)? = nil) {
+        if reset {
+            page = 1
+            totalCount = 0
+            totalRepositories = []
+        }
+        
+        guard !keyword.isEmpty else {
+            totalRepositories = []
+            totalCount = 0
+            return
+        }
+        
+        let request: URLRequest
+        do {
+            request = try GitHubAPI.repositories(query: keyword, perPage: 15, page: page).asURLRequest()
+        } catch {
+            totalRepositories = []
+            return
+        }
+        searchCancellable = URLSession.shared.dataTaskPublisher(for: request)
+            .map { $0.data }
+            .decode(type: RepositoryResponse.self, decoder: JSONDecoder())
+            .catch { error -> Just<RepositoryResponse> in
+                if let data = error as? DecodingError {
+                    // 마지막 페이지: total_count 없음 → 빈 Response 반환
+                    return Just(RepositoryResponse(total_count: self.totalRepositories.count, incomplete_results: true, items: []))
+                }
+                print("Search API error:", error)
+                return Just(RepositoryResponse(total_count: 0, incomplete_results: true, items: []))
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] response in
+                if reset {
+                    self?.totalRepositories = response.items
+                } else {
+                    self?.totalRepositories.append(contentsOf: response.items)
+                }
+                self?.totalCount = response.total_count
+                print("total count = \(response.total_count)")
+                completion?()
+            }
+    }
+    
+    func loadNextPage() {
+        guard !isLoading, totalRepositories.count < totalCount ?? 0 else { return }
+        isLoading = true
+        page += 1
+        search(reset: false) { [weak self] in
+            self?.isLoading = false
+        }
+    }
+
     func getStaredRepo() {
         let request: URLRequest
         do {
@@ -56,7 +118,7 @@ final class GitHubLoginViewModel: ObservableObject {
             }.resume()
 
         } catch {
-            repositories = []
+            starredRepositories = []
             return
         }
         
@@ -68,13 +130,14 @@ final class GitHubLoginViewModel: ObservableObject {
             }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] items in
-                self?.repositories = items
+                self?.starredRepositories = items
                 print("starred repositories = \(items)")
             }
     }
     
     func toggleStar(for repository: Repository) {
-        guard let index = repositories.firstIndex(where: { $0.id == repository.id }) else { return }
+        print("toggled star")
+        guard let index = starredRepositories.firstIndex(where: { $0.id == repository.id }) else { return }
 
         let endpoint: GitHubAPI
         if repository.isStarred ?? false {
@@ -91,10 +154,15 @@ final class GitHubLoginViewModel: ObservableObject {
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     self?.getStaredRepo()
+                    
+                    // 전체 검색 목록에서도 isStarred 업데이트
+                    if let searchIndex = self?.totalRepositories.firstIndex(where: { $0.id == repository.id }) {
+                        self?.totalRepositories[searchIndex].isStarred?.toggle()
+                    }
                 }
         } catch {
             print("Star/Unstar request failed:", error)
         }
     }
-}
 
+}

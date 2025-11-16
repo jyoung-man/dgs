@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SearchRow: View {
     var repository: Repository
-    @ObservedObject var viewModel: GitHubLoginViewModel
+    @ObservedObject var viewModel: GitHubSearchViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

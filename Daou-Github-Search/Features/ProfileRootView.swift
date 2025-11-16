@@ -10,12 +10,12 @@ import SwiftUI
 struct ProfileRootView: View {
     private let loginService: GitHubLoginService
 
-    @StateObject private var viewModel: GitHubLoginViewModel
+    @StateObject private var viewModel: GitHubSearchViewModel
 
     init(loginService: GitHubLoginService) {
         self.loginService = loginService
         _viewModel = StateObject(
-            wrappedValue: GitHubLoginViewModel(
+            wrappedValue: GitHubSearchViewModel(
                 client: GitHubClient(session: .default),
                 loginService: loginService
             )
@@ -24,7 +24,7 @@ struct ProfileRootView: View {
 
     var body: some View {
         VStack {
-            List(viewModel.repositories) { repo in
+            List(viewModel.starredRepositories) { repo in
                 SearchRow(repository: repo, viewModel: viewModel)
             }
             .listStyle(PlainListStyle())
