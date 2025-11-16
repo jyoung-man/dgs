@@ -16,7 +16,6 @@ struct ProfileRootView: View {
         self.loginService = loginService
         _viewModel = StateObject(
             wrappedValue: GitHubSearchViewModel(
-                client: GitHubClient(session: .default),
                 loginService: loginService
             )
         )
@@ -31,8 +30,5 @@ struct ProfileRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
-        .onReceive(loginService.loginCompletedPublisher) {
-            viewModel.getStaredRepo()
-        }
     }
 }

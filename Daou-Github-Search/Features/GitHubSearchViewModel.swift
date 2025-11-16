@@ -22,7 +22,9 @@ final class GitHubSearchViewModel: ObservableObject {
     private var myRepoCancellable: Cancellable? {
         didSet { oldValue?.cancel() }
     }
-    private var toggleCancellable: Cancellable?
+    private var toggleCancellable: Cancellable?{
+        didSet { oldValue?.cancel() }
+    }
 
     private var token: String?
     
@@ -32,16 +34,14 @@ final class GitHubSearchViewModel: ObservableObject {
         toggleCancellable?.cancel()
     }
     
-    private var client: GitHubClientProtocol
     
-    init(client: GitHubClientProtocol, loginService: GitHubLoginService) {
-        self.client = client
+    init(loginService: GitHubLoginService) {
         myRepoCancellable = loginService.loginCompletedPublisher
             .sink { [weak self] in
                 guard let self = self else { return }
                 // keychainService에서 token을 꺼내서 client를 업데이트
                 self.token = loginService.getAccessToken()
-                self.client = GitHubClient(session: .default)
+                self.getStaredRepo()
             }
     }
     
@@ -136,7 +136,6 @@ final class GitHubSearchViewModel: ObservableObject {
     }
     
     func toggleStar(for repository: Repository) {
-        print("toggled star")
         guard let index = starredRepositories.firstIndex(where: { $0.id == repository.id }) else { return }
 
         let endpoint: GitHubAPI
@@ -148,13 +147,14 @@ final class GitHubSearchViewModel: ObservableObject {
 
         do {
             let request = try endpoint.asURLRequest()
-            myRepoCancellable = URLSession.shared.dataTaskPublisher(for: request)
+            toggleCancellable = URLSession.shared.dataTaskPublisher(for: request)
                 .map { _ in }
                 .catch { error -> Just<Void> in Just(()) }
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     self?.getStaredRepo()
-                    
+                    print("toggled star")
+
                     // 전체 검색 목록에서도 isStarred 업데이트
                     if let searchIndex = self?.totalRepositories.firstIndex(where: { $0.id == repository.id }) {
                         self?.totalRepositories[searchIndex].isStarred?.toggle()

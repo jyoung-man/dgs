@@ -13,7 +13,7 @@ struct RepositoryResponse: Codable {
     let items: [Repository]
 }
 
-struct Repository: Codable, Identifiable, Equatable {
+class Repository: Identifiable, ObservableObject, Codable, Equatable {
     let id: Int
     let name: String
     let fullName: String?
@@ -22,11 +22,28 @@ struct Repository: Codable, Identifiable, Equatable {
     let language: String?
     let owner: Owner
     let license: License?
-    var isStarred: Bool?
+
+    @Published var isStarred: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, name, description, owner, language, license
         case fullName = "full_name"
         case starCount = "stargazers_count"
+    }
+
+    init(id: Int, name: String, fullName: String?, description: String?, starCount: Int?, language: String?, owner: Owner, license: License?, isStarred: Bool?) {
+        self.id = id
+        self.name = name
+        self.fullName = fullName
+        self.description = description
+        self.starCount = starCount
+        self.language = language
+        self.owner = owner
+        self.license = license
+        self.isStarred = isStarred
+    }
+    
+    static func == (lhs: Repository, rhs: Repository) -> Bool {
+        return lhs.id == rhs.id
     }
 }

@@ -15,7 +15,6 @@ struct SearchRootView: View {
         self.loginService = loginService
         _viewModel = StateObject(
             wrappedValue: GitHubSearchViewModel(
-                client: GitHubClient(session: .default),
                 loginService: loginService
             )
         )
