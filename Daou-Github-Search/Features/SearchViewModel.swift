@@ -11,7 +11,7 @@ import Combine
 final class SearchViewModel:
     ObservableObject {
     
-    @Published var keyword = "rxswift"
+    @Published var keyword = ""
     @Published private(set) var repositories = [Repository]()
     
     
@@ -30,7 +30,7 @@ final class SearchViewModel:
         
         let request: URLRequest
         do {
-            request = try GitHubAPI.repositories(query: keyword, perPage: 100, page: 1).asURLRequest()
+            request = try GitHubAPI.repositories(query: keyword, perPage: 30, page: 1).asURLRequest()
         } catch {
             return repositories = []
         }
