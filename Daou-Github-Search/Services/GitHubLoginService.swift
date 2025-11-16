@@ -13,6 +13,7 @@ import UIKit
 protocol GitHubLoginService: AnyObject {
     var loginCompletedPublisher: AnyPublisher<Void, Never> { get }
     func handle(_ url: URL) -> Bool
+    func getAccessToken() -> String?
 }
 
 final class GitHubLoginServiceImplement: GitHubLoginService {
@@ -36,6 +37,10 @@ final class GitHubLoginServiceImplement: GitHubLoginService {
     init(client: GitHubClientProtocol, keychainService: KeychainService) {
         self.client = client
         self.keychainService = keychainService
+    }
+    
+    func getAccessToken() -> String? {
+        return keychainService.accessToken()
     }
     
     func handle(_ url: URL) -> Bool {

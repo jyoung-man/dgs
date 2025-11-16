@@ -15,7 +15,7 @@ enum GitHubAPI {
     case repositories(query: String, perPage: Int, page: Int)
     // My
     case myProfile
-    case myStarredRepositories
+    case myStarredRepositories(accessToken: String = "")
     // Star & Unstar
     case star(owner: String, repository: String)
     case unstar(owner: String, repository: String)
@@ -71,7 +71,10 @@ extension GitHubAPI: URLRequestConvertible {
             var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)!
             comps.queryItems = items
             request.url = comps.url
-        case .myProfile, .myStarredRepositories, .star, .unstar:
+        case let .myStarredRepositories(accessToken):
+            request.setValue("token \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        case .myProfile, .star, .unstar:
             break
         }
         return request

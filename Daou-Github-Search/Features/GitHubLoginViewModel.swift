@@ -15,34 +15,31 @@ final class GitHubLoginViewModel: ObservableObject {
     private var myRepoCancellable: Cancellable? {
         didSet { oldValue?.cancel() }
     }
+    private var token: String?
     
     deinit {
         myRepoCancellable?.cancel()
     }
     
-    private let client: GitHubClientProtocol
+    private var client: GitHubClientProtocol
     
-    init(client: GitHubClientProtocol) {
+    init(client: GitHubClientProtocol, loginService: GitHubLoginService) {
         self.client = client
-    }
-
-    func fetchMyStarred() {
-        print("fetch my starred")
-        myRepoCancellable = client.myStarredRepositories()
-            .receive(on: DispatchQueue.main)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    print("Starred list error: \(error)")
-                }
-            } receiveValue: { [weak self] repos in
-                self?.repositories = repos
-                print("starred repositories = \(repos)")
+        print("client \(client)")
+        
+        myRepoCancellable = loginService.loginCompletedPublisher
+            .sink { [weak self] in
+                guard let self = self else { return }
+                // keychainService에서 token을 꺼내서 client를 업데이트
+                self.token = loginService.getAccessToken()
+                self.client = GitHubClient(session: .default)
             }
     }
+    
     func getStaredRepo() {
         let request: URLRequest
         do {
-            request = try GitHubAPI.myStarredRepositories.asURLRequest()
+            request = try GitHubAPI.myStarredRepositories(accessToken: self.token ?? "").asURLRequest()
         } catch {
             repositories = []
             return
@@ -50,8 +47,7 @@ final class GitHubLoginViewModel: ObservableObject {
         
         myRepoCancellable = URLSession.shared.dataTaskPublisher(for: request)
             .map { $0.data }
-            .decode(type: RepositoryResponse.self, decoder: JSONDecoder())
-            .map { $0.items }
+            .decode(type: [Repository].self, decoder: JSONDecoder())
             .catch { error -> Just<[Repository]> in
                 return Just([])
             }
@@ -59,7 +55,6 @@ final class GitHubLoginViewModel: ObservableObject {
             .sink { [weak self] items in
                 self?.repositories = items
                 print("starred repositories = \(items)")
-
             }
     }
 }

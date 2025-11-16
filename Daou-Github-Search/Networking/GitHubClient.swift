@@ -36,7 +36,7 @@ final class GitHubClient: GitHubClientProtocol {
 
     func myProfile() -> AnyPublisher<CurrentUser, AFError> { request(.myProfile) }
     
-    func myStarredRepositories() -> AnyPublisher<[Repository], AFError> { request(.myStarredRepositories) }
+    func myStarredRepositories() -> AnyPublisher<[Repository], AFError> { request(.myStarredRepositories()) }
 
     func star(owner: String, repo: String) -> AnyPublisher<Void, AFError> {
         requestVoid(.star(owner: owner, repository: repo))

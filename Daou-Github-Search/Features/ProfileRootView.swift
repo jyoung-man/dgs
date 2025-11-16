@@ -10,10 +10,16 @@ import SwiftUI
 struct ProfileRootView: View {
     private let loginService: GitHubLoginService
 
-    @StateObject var viewModel = GitHubLoginViewModel(client: GitHubClient(session: .default))
-    
+    @StateObject private var viewModel: GitHubLoginViewModel
+
     init(loginService: GitHubLoginService) {
         self.loginService = loginService
+        _viewModel = StateObject(
+            wrappedValue: GitHubLoginViewModel(
+                client: GitHubClient(session: .default),
+                loginService: loginService
+            )
+        )
     }
 
     var body: some View {
